@@ -1,6 +1,6 @@
 import { io } from 'socket.io-client';
 
-const BACKEND_URL = 'http://localhost:4000';
+const BACKEND_URL = 'https://virtual-lab-backend-27yv.onrender.com';
 
 // Create a single socket instance to be shared across the app
 export const socket = io(BACKEND_URL, {
