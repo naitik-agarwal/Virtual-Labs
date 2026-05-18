@@ -1,0 +1,34 @@
+# /docker-compose.yml
+version: '3.8'
+
+services:
+  # 1. The MongoDB Database
+  database:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  # 2. Your Node.js Backend
+  backend:
+    build: ./backend
+    ports:
+      - "4000:4000"
+    environment:
+      - PORT=4000
+      # Connects to the local Docker database container
+      - MONGO_URI=mongodb://database:27017/virtual-lab 
+    depends_on:
+      - database
+
+  # 3. Your React Frontend
+  frontend:
+    build: ./frontend
+    ports:
+      - "8080:80" # Maps localhost:8080 to Nginx port 80
+    depends_on:
+      - backend
+
+volumes:
+  mongo_data:
