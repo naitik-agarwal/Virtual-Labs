@@ -92,7 +92,6 @@ const PhysicsCanvas = () => {
             if (activeToolRef.current === 'pointer' && role === 'guest') {
               guestDraggingIdRef.current = body.id; dragOffsetRef.current = { x: body.position.x - mousePos.x, y: body.position.y - mousePos.y }; socket.emit('guest-grab', { id: body.id });
             } 
-            // --- THE FIX FOR JOINTS AND SPRINGS IS HERE ---
             else if (activeToolRef.current === 'joint' || activeToolRef.current === 'spring') {
               if (!selectedBodyForConstraintRef.current) {
                 selectedBodyForConstraintRef.current = body.id;
@@ -106,7 +105,7 @@ const PhysicsCanvas = () => {
                     bodyBId: body.id,
                     length: activeToolRef.current === 'spring' ? 0 : Math.hypot(bodyA.position.x - body.position.x, bodyA.position.y - body.position.y)
                   };
-                  spawnConstraintLocal(constraintData); // Create instantly!
+                  spawnConstraintLocal(constraintData); 
                   socket.emit('spawn-constraint', constraintData);
                 }
                 selectedBodyForConstraintRef.current = null;
@@ -191,7 +190,6 @@ const PhysicsCanvas = () => {
 
   const handleJoinRoom = (e) => { e.preventDefault(); if (roomId.trim() === '') return; socket.emit('join-room', roomId); setHasJoined(true); };
   
-  // --- LOCAL SPAWN FUNCTIONS ---
   const spawnBodyLocal = (shapeData) => {
     if (!engineRef.current) return;
     let newBody;
@@ -212,8 +210,8 @@ const PhysicsCanvas = () => {
     const bodyB = Matter.Composite.allBodies(engineRef.current.world).find(b => b.id === data.bodyBId);
     if (bodyA && bodyB) {
       const options = { bodyA, bodyB, length: data.length, id: data.id, plugin: { customType: data.type }};
-      if (data.type === 'spring') { options.stiffness = 0.02; options.render = { type: 'line', strokeStyle: '#FF2D55', lineWidth: 4 }; } 
-      else { options.stiffness = 1; options.render = { type: 'line', strokeStyle: '#5856D6', lineWidth: 6 }; }
+      if (data.type === 'spring') { options.stiffness = 0.02; options.render = { type: 'line', strokeStyle: '#f43f5e', lineWidth: 4 }; } 
+      else { options.stiffness = 1; options.render = { type: 'line', strokeStyle: '#6366f1', lineWidth: 6 }; }
       Matter.World.add(engineRef.current.world, Matter.Constraint.create(options));
     }
   };
@@ -234,45 +232,59 @@ const PhysicsCanvas = () => {
   const handleDeleteExperiment = (id) => { if (window.confirm("Are you sure you want to delete this template?")) socket.emit('delete-experiment', id); };
 
   return (
-    <div className="flex flex-col items-center pt-8 min-h-screen bg-slate-50 font-sans text-slate-800 selection:bg-blue-200 px-4">
+    <div className="flex flex-col items-center pt-10 min-h-screen text-slate-800 selection:bg-blue-500 selection:text-white px-6">
+      
+      {/* GLOWING JOIN ROOM MODAL */}
       {!hasJoined && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex justify-center items-center z-50 p-4">
-          <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-sm">
-            <h2 className="text-2xl font-bold text-slate-800 mb-2">Join a Lab</h2>
-            <p className="text-slate-500 mb-6 text-sm">Enter a Room ID to collaborate.</p>
-            <form onSubmit={handleJoinRoom} className="flex flex-col gap-4">
-              <input type="text" placeholder="e.g., lab-101" className="px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none" value={roomId} onChange={(e) => setRoomId(e.target.value)} autoFocus />
-              <button type="submit" className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg transition-all active:scale-95">Enter Workspace</button>
-            </form>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xl flex justify-center items-center z-50 p-4">
+          <div className="bg-white p-12 rounded-[2.5rem] shadow-[0_0_80px_rgba(59,130,246,0.3)] w-full max-w-md border-4 border-white relative overflow-hidden">
+            <div className="absolute -top-32 -right-32 w-64 h-64 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
+            <div className="absolute -bottom-32 -left-32 w-64 h-64 bg-indigo-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
+            
+            <div className="relative z-10">
+              <h2 className="text-4xl font-black text-slate-900 mb-2 tracking-tight">Access Lab</h2>
+              <p className="text-slate-500 mb-8 font-medium">Enter your session ID to connect to the physics engine.</p>
+              <form onSubmit={handleJoinRoom} className="flex flex-col gap-5">
+                <input type="text" placeholder="e.g., room-77" className="px-6 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl focus:border-blue-600 focus:ring-0 outline-none transition-all text-slate-800 font-bold text-lg placeholder:font-medium placeholder:text-slate-400 shadow-inner" value={roomId} onChange={(e) => setRoomId(e.target.value)} autoFocus />
+                <button type="submit" className="px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white font-black text-lg rounded-2xl shadow-[0_10px_20px_-10px_rgba(59,130,246,0.8)] transition-all active:scale-95">Initialize Connection &rarr;</button>
+              </form>
+            </div>
           </div>
         </div>
       )}
 
+      {/* LIBRARY MODAL */}
       {isLibraryOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex justify-center items-center z-50 p-4">
-          <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-slate-800">Experiment Library</h2>
-              <button onClick={() => setIsLibraryOpen(false)} className="text-slate-400 hover:text-slate-600 font-bold text-3xl">&times;</button>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex justify-center items-center z-50 p-4">
+          <div className="bg-white p-8 rounded-[2rem] shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col border border-slate-100">
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="text-3xl font-black text-slate-900 tracking-tight">Experiment Library</h2>
+              <button onClick={() => setIsLibraryOpen(false)} className="w-10 h-10 bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-900 rounded-full font-bold text-xl flex items-center justify-center transition-all">&times;</button>
             </div>
-            <form onSubmit={handleSaveExperiment} className="flex gap-4 mb-8 bg-slate-50 p-4 rounded-2xl border border-slate-200">
-              <input type="text" placeholder="Name your experiment (e.g., Catapult V1)" className="flex-1 px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/50 outline-none" value={newExpName} onChange={(e) => setNewExpName(e.target.value)} />
-              <button type="submit" className="px-6 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl transition-all shadow-sm">Save Lab</button>
+            
+            <form onSubmit={handleSaveExperiment} className="flex gap-4 mb-8 bg-slate-50 p-5 rounded-3xl border-2 border-slate-100">
+              <input type="text" placeholder="Name this configuration..." className="flex-1 px-6 py-3 border-2 border-slate-200 rounded-2xl focus:border-emerald-500 outline-none transition-all font-bold text-slate-700" value={newExpName} onChange={(e) => setNewExpName(e.target.value)} />
+              <button type="submit" className="px-8 py-3 bg-slate-900 hover:bg-emerald-500 text-white font-bold rounded-2xl transition-all shadow-lg">Save State</button>
             </form>
-            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Saved Templates</h3>
-            <div className="flex-1 overflow-y-auto pr-2 space-y-3">
+            
+            <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-4 ml-2">Archived States</h3>
+            <div className="flex-1 overflow-y-auto pr-2 space-y-4">
               {savedExperiments.length === 0 ? (
-                <p className="text-slate-500 text-center italic mt-10">No experiments saved yet. Build something and save it!</p>
+                <div className="flex flex-col items-center justify-center py-16 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200">
+                  <div className="text-6xl mb-4 grayscale opacity-50">📁</div>
+                  <h3 className="font-bold text-slate-700 text-xl">No states saved</h3>
+                  <p className="text-slate-500 text-center mt-2 max-w-sm font-medium">Create a simulation in the main workspace and save it here.</p>
+                </div>
               ) : (
                 savedExperiments.map(exp => (
-                  <div key={exp.id} className="flex justify-between items-center p-4 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-blue-300 transition-colors">
+                  <div key={exp.id} className="flex justify-between items-center p-5 bg-white border-2 border-slate-100 rounded-2xl hover:border-blue-500 hover:shadow-lg transition-all group">
                     <div>
-                      <h4 className="font-bold text-slate-800">{exp.name}</h4>
-                      <p className="text-xs text-slate-500">{exp.bodies.length} Bodies &bull; {exp.constraints.length} Joints</p>
+                      <h4 className="font-black text-slate-800 text-xl">{exp.name}</h4>
+                      <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-wider">{exp.bodies.length} Bodies &bull; {exp.constraints.length} Joints</p>
                     </div>
-                    <div className="flex gap-2">
-                      <button onClick={() => handleLoadExperiment(exp)} className="px-4 py-2 bg-blue-50 text-blue-600 font-semibold rounded-lg hover:bg-blue-100 transition-colors">Load</button>
-                      <button onClick={() => handleDeleteExperiment(exp.id)} className="px-4 py-2 bg-red-50 text-red-600 font-semibold rounded-lg hover:bg-red-100 transition-colors">Delete</button>
+                    <div className="flex gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => handleLoadExperiment(exp)} className="px-6 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all shadow-md">Load</button>
+                      <button onClick={() => handleDeleteExperiment(exp.id)} className="px-4 py-2.5 bg-red-50 text-red-600 font-bold rounded-xl hover:bg-red-100 transition-all">Delete</button>
                     </div>
                   </div>
                 ))
@@ -282,46 +294,91 @@ const PhysicsCanvas = () => {
         </div>
       )}
 
-      <div className="w-full max-w-[1200px] mb-4">
-        <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">VIRTUAL-LAB Workspace</h1>
-        {hasJoined && <p className="text-blue-600 font-bold mt-2 text-sm uppercase">ROOM: {roomId} &bull; ROLE: {role ? role : 'CONNECTING...'}</p>}
+      {/* HEADER SECTION */}
+      <div className="w-full max-w-[1400px] mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4 z-10 relative">
+        <div>
+          <h1 className="text-6xl font-black text-slate-900 tracking-tighter drop-shadow-sm">
+            Physics Lab<span className="text-blue-600">.</span>
+          </h1>
+          <p className="text-slate-500 mt-2 font-medium text-lg tracking-wide">Real-time Kinematics & Dynamics Engine</p>
+        </div>
+
+        {hasJoined && (
+          <div className="inline-flex items-center gap-3 px-5 py-2.5 rounded-2xl bg-white border-2 border-slate-200 shadow-sm h-fit">
+            <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.8)]"></div>
+            <span className="text-slate-900 font-black tracking-widest uppercase text-sm">Room {roomId}</span>
+            <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+            <span className={`font-bold text-sm uppercase tracking-widest ${role === 'host' ? 'text-blue-600' : 'text-purple-600'}`}>{role}</span>
+          </div>
+        )}
       </div>
 
-      {hasJoined && (
-        <div className="w-full max-w-[1200px] mb-4 z-20">
-          <Toolbar activeTool={activeTool} onSetTool={setActiveTool} onAddShape={handleAddShape} onClear={handleClearCanvas} onToggleGravity={handleToggleGravity} onOpenLibrary={openLibrary} isZeroG={isZeroG} isHost={role === 'host'} />
-        </div>
-      )}
+      {/* FLOATING MAC-STYLE TOOLBAR */}
+      {hasJoined && <Toolbar activeTool={activeTool} onSetTool={setActiveTool} onAddShape={handleAddShape} onClear={handleClearCanvas} onToggleGravity={handleToggleGravity} onOpenLibrary={openLibrary} isZeroG={isZeroG} isHost={role === 'host'} />}
 
-      <div className="w-full max-w-[1200px] grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
-        <div className="lg:col-span-2 relative w-full aspect-[3/2] border border-slate-200 rounded-3xl overflow-hidden bg-white shadow-sm">
+      {/* MAIN WORKSPACE */}
+      <div className="w-full max-w-[1400px] grid grid-cols-1 lg:grid-cols-4 gap-8 mb-16 relative z-10">
+        
+        {/* CANVAS AREA (Takes up 3 columns) */}
+        <div className="lg:col-span-3 relative w-full aspect-[16/9] border-4 border-white rounded-[2.5rem] overflow-hidden blueprint-grid shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)]">
           {hasJoined && (
-            <div className="absolute bottom-4 left-4 z-20 bg-white/85 backdrop-blur-md border border-slate-200/50 rounded-xl px-4 py-3 shadow-lg flex flex-col gap-2 min-w-[100px] pointer-events-none">
-              <div className="flex justify-between items-center gap-4"><span className="text-[10px] font-bold text-slate-400 uppercase">Bodies</span><span ref={hudBodiesRef} className="text-base font-black text-slate-800 font-mono">0</span></div>
-              <div className="w-full h-px bg-slate-100"></div>
-              <div className="flex justify-between items-center gap-4"><span className="text-[10px] font-bold text-slate-400 uppercase">Joints</span><span ref={hudConstraintsRef} className="text-base font-black text-slate-800 font-mono">0</span></div>
+            <div className="absolute top-6 left-6 z-20 pointer-events-none">
+              <span className="px-4 py-2 bg-white/90 backdrop-blur-md border border-slate-200 rounded-xl text-xs font-black text-slate-800 shadow-lg uppercase tracking-widest">
+                Simulation Feed
+              </span>
             </div>
           )}
-          <div ref={sceneRef} className="w-full h-full" />
+          <div ref={sceneRef} className="w-full h-full cursor-crosshair mix-blend-multiply" />
         </div>
 
-        <div className="lg:col-span-1 w-full bg-white border border-slate-200 rounded-3xl shadow-sm p-6 flex flex-col">
-          <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">Live Analytics</h3>
-          <h2 className="text-xl font-extrabold text-slate-800 mb-6">Total Kinetic Energy</h2>
+        {/* ANALYTICS PANEL (Takes up 1 column) */}
+        <div className="lg:col-span-1 w-full bg-white border-4 border-white rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] p-8 flex flex-col h-full">
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Live Telemetry</h3>
+          </div>
+
+          {/* HUD STAT CARDS */}
+          <div className="grid grid-cols-2 gap-4 mb-10">
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 flex flex-col items-center justify-center shadow-inner">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Bodies</p>
+              <p ref={hudBodiesRef} className="text-4xl font-black text-slate-900 font-mono tracking-tighter">0</p>
+            </div>
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 flex flex-col items-center justify-center shadow-inner">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Joints</p>
+              <p ref={hudConstraintsRef} className="text-4xl font-black text-slate-900 font-mono tracking-tighter">0</p>
+            </div>
+          </div>
+
+          <h2 className="text-xl font-black text-slate-900 mb-6 tracking-tight">Kinetic Energy</h2>
           
           <div className="flex-1 w-full min-h-[250px]">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                <XAxis dataKey="time" stroke="#94a3b8" fontSize={10} tickMargin={10} />
-                <YAxis stroke="#94a3b8" fontSize={10} tickFormatter={(val) => `${val}J`} />
-                <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }} labelStyle={{ color: '#64748b', fontSize: '12px' }} itemStyle={{ color: '#0f172a', fontWeight: 'bold' }} />
-                <Line type="monotone" dataKey="energy" stroke="#3b82f6" strokeWidth={3} dot={false} activeDot={{ r: 6, fill: '#3b82f6', stroke: '#fff', strokeWidth: 2 }} animationDuration={300} />
+              <LineChart data={chartData} margin={{ top: 5, right: 10, left: -25, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="4 4" stroke="#e2e8f0" vertical={false} />
+                <XAxis dataKey="time" stroke="#94a3b8" fontSize={11} tickMargin={12} axisLine={false} tickLine={false} />
+                <YAxis stroke="#94a3b8" fontSize={11} tickFormatter={(val) => `${val}J`} axisLine={false} tickLine={false} />
+                <Tooltip 
+                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 40px -10px rgba(0, 0, 0, 0.2)', backgroundColor: '#0f172a' }} 
+                  labelStyle={{ color: '#94a3b8', fontSize: '12px', fontWeight: 'bold' }} 
+                  itemStyle={{ color: '#ffffff', fontWeight: '900' }} 
+                />
+                {/* Replaced standard line with a thicker, glowing line */}
+                <Line 
+                  type="monotone" 
+                  dataKey="energy" 
+                  stroke="#3b82f6" 
+                  strokeWidth={5} 
+                  dot={false} 
+                  activeDot={{ r: 8, fill: '#3b82f6', stroke: '#ffffff', strokeWidth: 4 }} 
+                  animationDuration={300} 
+                  style={{ filter: 'drop-shadow(0px 10px 10px rgba(59, 130, 246, 0.4))' }}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
-          <p className="text-xs text-slate-500 mt-4 text-center">Tracking cumulative ½mv² of all dynamic bodies.</p>
+          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-6 text-center">Cumulative ½mv²</p>
         </div>
+
       </div>
     </div>
   );
