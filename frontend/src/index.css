@@ -1,1 +1,43 @@
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap");
 @import "tailwindcss";
+
+html,
+body {
+  font-family: "Outfit", sans-serif;
+  background-color: #f8fafc;
+  /* Premium subtle dot matrix background */
+  background-image: radial-gradient(#94a3b8 1px, transparent 1px);
+  background-size: 28px 28px;
+  margin: 0;
+  padding: 0;
+  scroll-behavior: smooth;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Custom engineering grid for the simulation canvas */
+.blueprint-grid {
+  background-color: #ffffff;
+  background-image:
+    linear-gradient(to right, #f1f5f9 2px, transparent 2px),
+    linear-gradient(to bottom, #f1f5f9 2px, transparent 2px);
+  background-size: 40px 40px;
+  background-position: center center;
+}
+
+/* Sleek scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
